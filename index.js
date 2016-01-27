@@ -2,56 +2,62 @@ var tty = require('tty')
   , keypress = require('keypress')
 
 function prompt (message, hideInput, cb) {
-  if (typeof hideInput === 'function') {
-    cb = hideInput;
-    hideInput = false;
-  }
-
-  keypress(process.stdin);
-
-  function setRawMode(mode) {
-    if (process.stdin.setRawMode) {
-      process.stdin.setRawMode(mode);
+  return new Promise(function(resolve, reject){
+    if (typeof hideInput === 'function') {
+      cb = hideInput;
+      hideInput = false;
     }
-    else if (process.stdout.isTTY) {
-      tty.setRawMode(mode);
-    }
-  }
-  if (hideInput) setRawMode(true);
 
-  process.stdout.write(message);
+    if(!cb) cb = function noop(){}
 
-  function listen (c, key) {
-    if (key) {
-      if (key.ctrl && key.name === 'c') {
-        process.exit();
+    keypress(process.stdin);
+
+    function setRawMode(mode) {
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(mode);
       }
-      else if (key.name === 'return'){
-        if (hideInput == true){
+      else if (process.stdout.isTTY) {
+        tty.setRawMode(mode);
+      }
+    }
+    if (hideInput) setRawMode(true);
+
+    process.stdout.write(message);
+
+    function listen (c, key) {
+      if (key) {
+        if (key.ctrl && key.name === 'c') {
+          process.exit();
+        }
+        else if (key.name === 'return'){
+          if (hideInput == true){
+            process.stdin.removeListener('keypress', listen);
+            process.stdin.pause();
+            setRawMode(false);
+            console.log();
+            cb(line, function () {}); // for backwards-compatibility, fake end() callback
+            resolve(line);
+          }
+          return;
+        } else if (key.name === 'enter' || key.sequence === '\r\n') {
           process.stdin.removeListener('keypress', listen);
           process.stdin.pause();
-          setRawMode(false);
-          console.log();
-          cb(line, function () {}); // for backwards-compatibility, fake end() callback
+          if (hideInput) {
+            setRawMode(false);
+            console.log();
+          }
+          cb(line.trim(), function () {}); // for backwards-compatibility, fake end() callback
+          resolve(line.trim());
+          return;
         }
-        return;
-      } else if (key.name === 'enter' || key.sequence === '\r\n') {
-        process.stdin.removeListener('keypress', listen);
-        process.stdin.pause();
-        if (hideInput) {
-          setRawMode(false);
-          console.log();
-        }
-        cb(line.trim(), function () {}); // for backwards-compatibility, fake end() callback
-        return;
+        if (key.name === 'backspace') line = line.slice(0, -1);
       }
-      if (key.name === 'backspace') line = line.slice(0, -1);
+      if (!key || key.name !== 'backspace') line += c;
     }
-    if (!key || key.name !== 'backspace') line += c;
-  }
 
-  var line = '';
-  process.stdin.on('keypress', listen).resume();
+    var line = '';
+    process.stdin.on('keypress', listen).resume();
+  });
 }
 module.exports = prompt;
 
