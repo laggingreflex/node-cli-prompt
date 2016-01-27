@@ -9,6 +9,12 @@ function prompt (message, hideInput, cb) {
 
   keypress(process.stdin);
 
+  var resolve, reject, promise = new Promise(function(res, rej){
+      resolve = res;
+      reject = rej;
+  });
+  if (!cb) cb = function noop(){}
+
   function setRawMode(mode) {
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(mode);
@@ -32,6 +38,7 @@ function prompt (message, hideInput, cb) {
           process.stdin.pause();
           setRawMode(false);
           console.log();
+          resolve(line);
           cb(line, function () {}); // for backwards-compatibility, fake end() callback
         }
         return;
@@ -43,6 +50,7 @@ function prompt (message, hideInput, cb) {
           console.log();
         }
         cb(line.trim(), function () {}); // for backwards-compatibility, fake end() callback
+        resolve(line.trim());
         return;
       }
       if (key.name === 'backspace') line = line.slice(0, -1);
@@ -52,6 +60,7 @@ function prompt (message, hideInput, cb) {
 
   var line = '';
   process.stdin.on('keypress', listen).resume();
+  return promise;
 }
 module.exports = prompt;
 
