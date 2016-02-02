@@ -20,6 +20,12 @@ Usage
 - `message`: text prompt for the user
 - `handler`: function to be called with the entered text
 
+or returns a promise if handler not provided:
+
+#### `promise = prompt(message)`
+
+- `promise`: promise which resolves with the entered text
+
 Example
 -------
 
@@ -31,6 +37,17 @@ prompt('enter your first name: ', function (val) {
   prompt('and your last name: ', function (val) {
     console.log('hi, ' + first + ' ' + val + '!');
   });
+});
+```
+#### with promise:
+```js
+var first, last;
+prompt('enter your first name: ').then(function (val) {
+  first = val;
+  return prompt('and your last name: ');
+}).then(function (val) {
+  last = val;
+  console.log('hi, ' + first + ' ' + last + '!');
 });
 ```
 

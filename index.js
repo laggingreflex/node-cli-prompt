@@ -1,5 +1,6 @@
 var tty = require('tty')
   , keypress = require('keypress')
+  , promisify = require('./promisify')
 
 function prompt (message, hideInput, cb) {
   if (typeof hideInput === 'function') {
@@ -53,7 +54,7 @@ function prompt (message, hideInput, cb) {
   var line = '';
   process.stdin.on('keypress', listen).resume();
 }
-module.exports = prompt;
+module.exports = promisify(prompt);
 
 function password (message, cb) {
   prompt(message, true, function (val) {
@@ -62,7 +63,7 @@ function password (message, cb) {
     else cb(val, function () {}); // for backwards-compatibility, fake end() callback
   });
 }
-module.exports.password = password;
+module.exports.password = promisify(password);
 
 function multi (questions, cb) {
   var idx = 0, ret = {};
@@ -113,4 +114,4 @@ function multi (questions, cb) {
     prompt(label, q.type === 'password', record);
   })();
 }
-module.exports.multi = multi;
+module.exports.multi = promisify(multi);
